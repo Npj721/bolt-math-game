@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useScoreStore } from '../stores/scores'
 import { operations } from '../config/games'
 
@@ -10,6 +10,8 @@ const scoreStore = useScoreStore()
 const userAnswer = ref('')
 const showResult = ref(false)
 const message = ref('')
+const timeLeft = ref(0)
+const timerInterval = ref(null)
 
 const num1 = ref(0)
 const num2 = ref(0)
@@ -17,6 +19,34 @@ const num2 = ref(0)
 const operation = operations[props.operationType]
 const score = computed(() => scoreStore.getScoreForLevel(props.level.id))
 const correctAnswer = computed(() => operation.calculate(num1.value, num2.value))
+
+const timerWidth = computed(() => {
+  return (timeLeft.value / props.level.timer) * 100 + '%'
+})
+
+function startTimer() {
+  timeLeft.value = props.level.timer
+  if (timerInterval.value) clearInterval(timerInterval.value)
+  
+  timerInterval.value = setInterval(() => {
+    timeLeft.value--
+    if (timeLeft.value <= 0) {
+      clearInterval(timerInterval.value)
+      handleTimeout()
+    }
+  }, 1000)
+}
+
+async function handleTimeout() {
+  showResult.value = true
+  await scoreStore.incrementErrors(props.level.id, {
+    num1: num1.value,
+    num2: num2.value,
+    operationType: props.operationType
+  })
+  message.value = '⏰ Temps écoulé!'
+  setTimeout(generateNewProblem, 2000)
+}
 
 function generateNewProblem() {
   const numbers = operation.generateNumbers({
@@ -27,9 +57,11 @@ function generateNewProblem() {
   num2.value = numbers.num2
   userAnswer.value = ''
   showResult.value = false
+  startTimer()
 }
 
 async function checkAnswer() {
+  clearInterval(timerInterval.value)
   const answer = parseInt(userAnswer.value)
   showResult.value = true
   
@@ -47,6 +79,10 @@ async function checkAnswer() {
   
   setTimeout(generateNewProblem, 2000)
 }
+
+onUnmounted(() => {
+  if (timerInterval.value) clearInterval(timerInterval.value)
+})
 
 // Générer le premier problème au chargement
 generateNewProblem()
@@ -67,6 +103,11 @@ generateNewProblem()
     </div>
 
     <div class="problem-container">
+      <div class="timer-bar">
+        <div class="timer-progress" :style="{ width: timerWidth }"></div>
+        <div class="timer-text">{{ timeLeft }}s</div>
+      </div>
+
       <div class="problem">
         <span class="number">{{ num1 }}</span>
         <span class="operator">{{ operation.symbol }}</span>
@@ -136,6 +177,36 @@ generateNewProblem()
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.timer-bar {
+  position: relative;
+  height: 30px;
+  background-color: #f0f0f0;
+  border-radius: 15px;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.timer-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #42b883;
+  transition: width 1s linear;
+}
+
+.timer-text {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2c3e50;
+  font-weight: bold;
+  z-index: 1;
 }
 
 .problem {

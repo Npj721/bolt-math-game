@@ -12,6 +12,11 @@ const showResult = ref(false)
 const message = ref('')
 const timeLeft = ref(0)
 const timerInterval = ref(null)
+const sessionProgress = ref(0)
+const sessionScore = ref(0)
+const sessionErrors = ref(0)
+const sessionStartTime = ref(Date.now())
+const showSessionSummary = ref(false)
 
 const num1 = ref(0)
 const num2 = ref(0)
@@ -22,6 +27,10 @@ const correctAnswer = computed(() => operation.calculate(num1.value, num2.value)
 
 const timerWidth = computed(() => {
   return (timeLeft.value / props.level.timer) * 100 + '%'
+})
+
+const sessionTimeElapsed = computed(() => {
+  return (Date.now() - sessionStartTime.value) / 1000
 })
 
 function startTimer() {
@@ -39,13 +48,34 @@ function startTimer() {
 
 async function handleTimeout() {
   showResult.value = true
+  sessionErrors.value++
   await scoreStore.incrementErrors(props.level.id, {
     num1: num1.value,
     num2: num2.value,
     operationType: props.operationType
   })
   message.value = '⏰ Temps écoulé!'
-  setTimeout(generateNewProblem, 2000)
+  
+  if (sessionProgress.value < props.level.sessionSize.count - 1) {
+    setTimeout(generateNewProblem, 2000)
+  } else {
+    await finishSession()
+  }
+}
+
+async function finishSession() {
+  clearInterval(timerInterval.value)
+  const totalTime = sessionTimeElapsed.value
+  
+  await scoreStore.saveSession(
+    props.level.id,
+    props.level.sessionSize.id,
+    sessionScore.value,
+    totalTime,
+    sessionErrors.value
+  )
+  
+  showSessionSummary.value = true
 }
 
 function generateNewProblem() {
@@ -67,6 +97,7 @@ async function checkAnswer() {
   
   if (answer === correctAnswer.value) {
     await scoreStore.incrementCorrect(props.level.id)
+    sessionScore.value++
     message.value = '🎉 Bravo! C\'est la bonne réponse!'
   } else {
     await scoreStore.incrementErrors(props.level.id, {
@@ -74,64 +105,88 @@ async function checkAnswer() {
       num2: num2.value,
       operationType: props.operationType
     })
+    sessionErrors.value++
     message.value = '❌ Oops! Essaie encore!'
   }
   
-  setTimeout(generateNewProblem, 2000)
+  if (sessionProgress.value < props.level.sessionSize.count - 1) {
+    sessionProgress.value++
+    setTimeout(generateNewProblem, 2000)
+  } else {
+    await finishSession()
+  }
 }
 
 onUnmounted(() => {
   if (timerInterval.value) clearInterval(timerInterval.value)
 })
 
-// Générer le premier problème au chargement
+// Démarrer la première question
 generateNewProblem()
 </script>
 
 <template>
   <div class="game-container">
-    <div class="game-header">
-      <button class="back-button" @click="$emit('back')">
-        ← Retour au menu
-      </button>
-      <h1>{{ level.name }}</h1>
-    </div>
-
-    <div class="score-board">
-      <p>✅ Bonnes réponses: {{ score.correct }}</p>
-      <p>❌ Erreurs: {{ score.errors }}</p>
-    </div>
-
-    <div class="problem-container">
-      <div class="timer-bar">
-        <div class="timer-progress" :style="{ width: timerWidth }"></div>
-        <div class="timer-text">{{ timeLeft }}s</div>
+    <template v-if="!showSessionSummary">
+      <div class="game-header">
+        <button class="back-button" @click="$emit('back')">
+          ← Retour au menu
+        </button>
+        <h1>{{ level.name }}</h1>
       </div>
 
-      <div class="problem">
-        <span class="number">{{ num1 }}</span>
-        <span class="operator">{{ operation.symbol }}</span>
-        <span class="number">{{ num2 }}</span>
-        <span class="operator">=</span>
-        <input 
-          type="number" 
-          v-model="userAnswer"
-          :disabled="showResult"
-          @keyup.enter="checkAnswer"
-          placeholder="?"
+      <div class="session-progress">
+        Question {{ sessionProgress + 1 }}/{{ level.sessionSize.count }}
+      </div>
+
+      <div class="score-board">
+        <p>✅ Score actuel: {{ sessionScore }}/{{ sessionProgress }}</p>
+        <p>❌ Erreurs: {{ sessionErrors }}</p>
+      </div>
+
+      <div class="problem-container">
+        <div class="timer-bar">
+          <div class="timer-progress" :style="{ width: timerWidth }"></div>
+          <div class="timer-text">{{ timeLeft }}s</div>
+        </div>
+
+        <div class="problem">
+          <span class="number">{{ num1 }}</span>
+          <span class="operator">{{ operation.symbol }}</span>
+          <span class="number">{{ num2 }}</span>
+          <span class="operator">=</span>
+          <input 
+            type="number" 
+            v-model="userAnswer"
+            :disabled="showResult"
+            @keyup.enter="checkAnswer"
+            placeholder="?"
+          >
+        </div>
+
+        <button 
+          @click="checkAnswer" 
+          :disabled="!userAnswer || showResult"
         >
+          Vérifier
+        </button>
+
+        <p class="message" :class="{ 'success': message.includes('Bravo') }">
+          {{ showResult ? message : '&nbsp;' }}
+        </p>
       </div>
+    </template>
 
-      <button 
-        @click="checkAnswer" 
-        :disabled="!userAnswer || showResult"
-      >
-        Vérifier
+    <div v-else class="session-summary">
+      <h2>Session terminée!</h2>
+      <div class="summary-stats">
+        <p>Score final: {{ sessionScore }}/{{ level.sessionSize.count }}</p>
+        <p>Temps total: {{ Math.round(sessionTimeElapsed) }}s</p>
+        <p>Erreurs: {{ sessionErrors }}</p>
+      </div>
+      <button class="back-button" @click="$emit('back')">
+        Retour au menu
       </button>
-
-      <p class="message" :class="{ 'success': message.includes('Bravo') }">
-        {{ showResult ? message : '&nbsp;' }}
-      </p>
     </div>
   </div>
 </template>
@@ -149,6 +204,12 @@ generateNewProblem()
   align-items: center;
   gap: 2rem;
   margin-bottom: 2rem;
+}
+
+.session-progress {
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 1rem;
 }
 
 .back-button {
@@ -271,5 +332,28 @@ button:disabled {
 
 .message.success {
   color: #42b883;
+}
+
+.session-summary {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.session-summary h2 {
+  color: #42b883;
+  margin-bottom: 2rem;
+}
+
+.summary-stats {
+  margin-bottom: 2rem;
+}
+
+.summary-stats p {
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
+  color: #2c3e50;
 }
 </style>

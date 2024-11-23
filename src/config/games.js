@@ -36,6 +36,12 @@ export const operations = {
   }
 }
 
+export const sessionSizes = [
+  { id: 'small', name: 'Courte', count: 10 },
+  { id: 'medium', name: 'Moyenne', count: 20 },
+  { id: 'large', name: 'Longue', count: 30 }
+]
+
 export const gameCategories = [
   {
     id: 'addition',

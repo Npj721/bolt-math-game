@@ -2,12 +2,14 @@ import { defineStore } from 'pinia'
 import { get, set } from 'idb-keyval'
 
 const STORE_KEY = 'math-game-scores'
+const SESSIONS_KEY = 'math-game-sessions'
 
 export const useScoreStore = defineStore('scores', {
   state: () => ({
     initialized: false,
     scores: {},
-    errors: {} // { levelId: [{ num1, num2, operationType }] }
+    errors: {},
+    sessions: {} // { levelId: { sessionSize: [{ date, score, totalTime, errors }] } }
   }),
   actions: {
     async init() {
@@ -15,12 +17,18 @@ export const useScoreStore = defineStore('scores', {
       
       try {
         const data = await get(STORE_KEY)
+        const sessionsData = await get(SESSIONS_KEY)
+        
         if (data) {
           if (data.scores) this.scores = JSON.parse(data.scores)
           if (data.errors) this.errors = JSON.parse(data.errors)
         }
+        
+        if (sessionsData) {
+          this.sessions = JSON.parse(sessionsData)
+        }
       } catch (error) {
-        console.error('Error loading scores:', error)
+        console.error('Error loading data:', error)
       }
       
       this.initialized = true
@@ -48,6 +56,33 @@ export const useScoreStore = defineStore('scores', {
         this.errors[levelId].splice(index, 1)
         await this.saveData()
       }
+    },
+    async saveSession(levelId, sessionSize, score, totalTime, errors) {
+      if (!this.sessions[levelId]) {
+        this.sessions[levelId] = {}
+      }
+      if (!this.sessions[levelId][sessionSize]) {
+        this.sessions[levelId][sessionSize] = []
+      }
+      
+      const session = {
+        date: new Date().toISOString(),
+        score,
+        totalTime,
+        errors
+      }
+      
+      this.sessions[levelId][sessionSize].push(session)
+      this.sessions[levelId][sessionSize].sort((a, b) => b.score - a.score)
+      
+      await set(SESSIONS_KEY, JSON.stringify(this.sessions))
+    },
+    getSessionHistory(levelId, sessionSize) {
+      return this.sessions[levelId]?.[sessionSize] || []
+    },
+    getBestSession(levelId, sessionSize) {
+      const sessions = this.getSessionHistory(levelId, sessionSize)
+      return sessions[0] || null
     },
     getScoreForLevel(levelId) {
       return this.scores[levelId] || { correct: 0, errors: 0 }

@@ -19,7 +19,10 @@ const score = computed(() => scoreStore.getScoreForLevel(props.level.id))
 const correctAnswer = computed(() => operation.calculate(num1.value, num2.value))
 
 function generateNewProblem() {
-  const numbers = operation.generateNumbers(props.level.max)
+  const numbers = operation.generateNumbers({
+    min: props.level.min,
+    max: props.level.max
+  })
   num1.value = numbers.num1
   num2.value = numbers.num2
   userAnswer.value = ''

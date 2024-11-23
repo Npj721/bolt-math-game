@@ -4,9 +4,11 @@ import { useScoreStore } from './stores/scores'
 import MainMenu from './components/MainMenu.vue'
 import GameMenu from './components/GameMenu.vue'
 import MathGame from './components/MathGame.vue'
+import ErrorCorrection from './components/ErrorCorrection.vue'
 
 const selectedCategory = ref(null)
 const selectedLevel = ref(null)
+const isCorrection = ref(false)
 const scoreStore = useScoreStore()
 
 onMounted(async () => {
@@ -16,19 +18,28 @@ onMounted(async () => {
 function handleCategorySelect(category) {
   selectedCategory.value = category
   selectedLevel.value = null
+  isCorrection.value = false
 }
 
 function handleLevelSelect(level) {
   selectedLevel.value = level
+  isCorrection.value = false
+}
+
+function handleCorrectErrors(level) {
+  selectedLevel.value = level
+  isCorrection.value = true
 }
 
 function returnToMainMenu() {
   selectedCategory.value = null
   selectedLevel.value = null
+  isCorrection.value = false
 }
 
 function returnToCategoryMenu() {
   selectedLevel.value = null
+  isCorrection.value = false
 }
 </script>
 
@@ -42,12 +53,20 @@ function returnToCategoryMenu() {
       <GameMenu 
         :category="selectedCategory"
         @select-level="handleLevelSelect"
+        @correct-errors="handleCorrectErrors"
         @back="returnToMainMenu"
       />
     </template>
     
     <template v-else>
       <MathGame 
+        v-if="!isCorrection"
+        :level="selectedLevel"
+        :operation-type="selectedCategory.id"
+        @back="returnToCategoryMenu"
+      />
+      <ErrorCorrection
+        v-else
         :level="selectedLevel"
         :operation-type="selectedCategory.id"
         @back="returnToCategoryMenu"

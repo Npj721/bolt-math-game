@@ -5,12 +5,17 @@ import { useScoreStore } from '../stores/scores'
 const props = defineProps(['category'])
 const scoreStore = useScoreStore()
 const isLoading = ref(true)
-const emit = defineEmits(['selectLevel', 'back'])
+const emit = defineEmits(['selectLevel', 'back', 'correctErrors'])
 
 onMounted(async () => {
   await scoreStore.init()
   isLoading.value = false
 })
+
+function hasErrors(levelId) {
+  const errors = scoreStore.getErrorsForLevel(levelId)
+  return errors.length > 0
+}
 </script>
 
 <template>
@@ -27,13 +32,27 @@ onMounted(async () => {
         v-for="level in category.levels" 
         :key="level.id"
         class="level-card"
-        @click="$emit('selectLevel', level)"
       >
         <h2>{{ level.name }}</h2>
         <p>{{ level.description }}</p>
         <div class="score-info">
           <p>✅ {{ scoreStore.getScoreForLevel(level.id).correct }}</p>
           <p>❌ {{ scoreStore.getScoreForLevel(level.id).errors }}</p>
+        </div>
+        <div class="button-group">
+          <button 
+            class="practice-button"
+            @click="$emit('selectLevel', level)"
+          >
+            S'entraîner
+          </button>
+          <button 
+            v-if="hasErrors(level.id)"
+            class="correction-button"
+            @click="$emit('correctErrors', level)"
+          >
+            Corriger les erreurs
+          </button>
         </div>
       </div>
     </div>
@@ -80,13 +99,6 @@ onMounted(async () => {
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.level-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .level-card h2 {
@@ -110,5 +122,30 @@ onMounted(async () => {
 .score-info p {
   font-size: 1.1rem;
   color: #2c3e50;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.practice-button {
+  background-color: #42b883;
+  color: white;
+}
+
+.correction-button {
+  background-color: #e67e22;
+  color: white;
+}
+
+.practice-button:hover {
+  background-color: #3aa876;
+}
+
+.correction-button:hover {
+  background-color: #d35400;
 }
 </style>

@@ -37,8 +37,12 @@ async function checkAnswer() {
     await scoreStore.incrementCorrect(props.level.id)
     message.value = '🎉 Bravo! C\'est la bonne réponse!'
   } else {
-    await scoreStore.incrementErrors(props.level.id)
-    message.value = `❌ Oops! La bonne réponse était ${correctAnswer.value}`
+    await scoreStore.incrementErrors(props.level.id, {
+      num1: num1.value,
+      num2: num2.value,
+      operationType: props.operationType
+    })
+    message.value = '❌ Oops! Essaie encore!'
   }
   
   setTimeout(generateNewProblem, 2000)

@@ -121,6 +121,7 @@ function closeHistory() {
   align-items: center;
   gap: 2rem;
   margin-bottom: 2rem;
+  color:#666;
 }
 
 .back-button {
@@ -220,6 +221,7 @@ function closeHistory() {
 
 .session-selection h2 {
   margin-bottom: 2rem;
+  color:#666;
 }
 
 .best-score {

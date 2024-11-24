@@ -114,6 +114,10 @@ async function checkAnswer() {
   margin-bottom: 2rem;
 }
 
+.game-header h1 {
+  color:#666;
+}
+
 .back-button {
   background-color: #666;
   color: white;
@@ -144,6 +148,7 @@ async function checkAnswer() {
 .no-errors p {
   font-size: 1.2rem;
   margin-bottom: 1.5rem;
+  color:#3aa876;
 }
 
 .problem-container {

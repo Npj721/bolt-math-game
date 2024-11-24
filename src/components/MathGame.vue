@@ -206,6 +206,10 @@ generateNewProblem()
   margin-bottom: 2rem;
 }
 
+.game-header h1{
+  color:#666;
+}
+
 .session-progress {
   font-size: 1.2rem;
   color: #666;
@@ -231,6 +235,7 @@ generateNewProblem()
   justify-content: space-around;
   margin-bottom: 2rem;
   font-size: 1.2rem;
+  color:#666;
 }
 
 .problem-container {

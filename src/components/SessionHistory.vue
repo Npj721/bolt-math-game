@@ -77,6 +77,10 @@ function formatDate(dateString) {
   margin-bottom: 2rem;
 }
 
+.history-header h2 {
+  color:#666;
+}
+
 .close-button {
   background: none;
   border: none;
@@ -101,6 +105,7 @@ function formatDate(dateString) {
 
 .history-table {
   overflow-x: auto;
+  color:#666;
 }
 
 table {

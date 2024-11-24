@@ -53,6 +53,7 @@ function getTotalScore(categoryId) {
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+  color:#2c3e50;
 }
 
 .subtitle {

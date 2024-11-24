@@ -2,11 +2,13 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { useScoreStore } from '../stores/scores'
 import { operations } from '../config/games'
+import { useSessionHistory } from '../composables/useSessionHistory'
 
 const props = defineProps(['level', 'operationType'])
 const emit = defineEmits(['back'])
 
 const scoreStore = useScoreStore()
+const sessionHistory = useSessionHistory()
 const userAnswers = ref({})
 const showResult = ref(false)
 const message = ref('')
@@ -105,18 +107,20 @@ async function finishSession() {
 
 function generateNewProblem() {
   if (props.operationType === 'decomposition') {
-    const { number } = operation.generateNumbers({
-      min: props.level.min,
-      max: props.level.max
-    })
+    const { number } = operation.generateNumbers(
+      { min: props.level.min, max: props.level.max },
+      (n) => sessionHistory.isInHistory(n)
+    )
     currentNumber.value = number
+    sessionHistory.addToHistory(number)
   } else {
-    const numbers = operation.generateNumbers({
-      min: props.level.min,
-      max: props.level.max
-    })
+    const numbers = operation.generateNumbers(
+      { min: props.level.min, max: props.level.max },
+      (nums) => sessionHistory.isInHistory({ ...nums, operationType: props.operationType })
+    )
     num1.value = numbers.num1
     num2.value = numbers.num2
+    sessionHistory.addToHistory({ ...numbers, operationType: props.operationType })
   }
   
   userAnswers.value = {}

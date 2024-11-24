@@ -2,36 +2,80 @@ export const operations = {
   addition: {
     calculate: (a, b) => a + b,
     symbol: '+',
-    generateNumbers: ({ min, max }) => ({
-      num1: Math.floor(Math.random() * (max - min + 1)) + min,
-      num2: Math.floor(Math.random() * (max - min + 1)) + min
-    })
+    generateNumbers: ({ min, max }, isInHistory, maxAttempts = 10) => {
+      let attempts = 0
+      while (attempts < maxAttempts) {
+        const num1 = Math.floor(Math.random() * (max - min + 1)) + min
+        const num2 = Math.floor(Math.random() * (max - min + 1)) + min
+        if (!isInHistory({ num1, num2 })) {
+          return { num1, num2 }
+        }
+        attempts++
+      }
+      // Si on ne trouve pas de nouvelle combinaison, on renvoie une au hasard
+      return {
+        num1: Math.floor(Math.random() * (max - min + 1)) + min,
+        num2: Math.floor(Math.random() * (max - min + 1)) + min
+      }
+    }
   },
   subtraction: {
     calculate: (a, b) => a - b,
     symbol: '-',
-    generateNumbers: ({ min, max }) => {
+    generateNumbers: ({ min, max }, isInHistory, maxAttempts = 10) => {
+      let attempts = 0
+      while (attempts < maxAttempts) {
+        const num2 = Math.floor(Math.random() * (max - min + 1)) + min
+        const num1 = num2 + Math.floor(Math.random() * (max - num2)) + min
+        if (!isInHistory({ num1, num2 })) {
+          return { num1, num2 }
+        }
+        attempts++
+      }
+      // Si on ne trouve pas de nouvelle combinaison
       const num2 = Math.floor(Math.random() * (max - min + 1)) + min
-      const num1 = num2 + Math.floor(Math.random() * (max - num2)) + min
-      return { num1, num2 }
+      return {
+        num1: num2 + Math.floor(Math.random() * (max - num2)) + min,
+        num2
+      }
     }
   },
   multiplication: {
     calculate: (a, b) => a * b,
     symbol: '×',
-    generateNumbers: ({ min, max }) => ({
-      num1: Math.floor(Math.random() * (max - min + 1)) + min,
-      num2: Math.floor(Math.random() * (max - min + 1)) + min
-    })
+    generateNumbers: ({ min, max }, isInHistory, maxAttempts = 10) => {
+      let attempts = 0
+      while (attempts < maxAttempts) {
+        const num1 = Math.floor(Math.random() * (max - min + 1)) + min
+        const num2 = Math.floor(Math.random() * (max - min + 1)) + min
+        if (!isInHistory({ num1, num2 })) {
+          return { num1, num2 }
+        }
+        attempts++
+      }
+      return {
+        num1: Math.floor(Math.random() * (max - min + 1)) + min,
+        num2: Math.floor(Math.random() * (max - min + 1)) + min
+      }
+    }
   },
   division: {
     calculate: (a, b) => a / b,
     symbol: '÷',
-    generateNumbers: ({ min, max }) => {
+    generateNumbers: ({ min, max }, isInHistory, maxAttempts = 10) => {
+      let attempts = 0
+      while (attempts < maxAttempts) {
+        const num2 = Math.floor(Math.random() * (max - min + 1)) + min
+        const result = Math.floor(Math.random() * (max - min + 1)) + min
+        const num1 = num2 * result
+        if (!isInHistory({ num1, num2 })) {
+          return { num1, num2 }
+        }
+        attempts++
+      }
       const num2 = Math.floor(Math.random() * (max - min + 1)) + min
       const result = Math.floor(Math.random() * (max - min + 1)) + min
-      const num1 = num2 * result
-      return { num1, num2 }
+      return { num1: num2 * result, num2 }
     }
   },
   decomposition: {
@@ -43,9 +87,17 @@ export const operations = {
         position: length - index - 1
       }))
     },
-    generateNumbers: ({ min, max }) => ({
-      number: Math.floor(Math.random() * (max - min + 1)) + min
-    })
+    generateNumbers: ({ min, max }, isInHistory, maxAttempts = 10) => {
+      let attempts = 0
+      while (attempts < maxAttempts) {
+        const number = Math.floor(Math.random() * (max - min + 1)) + min
+        if (!isInHistory(number)) {
+          return { number }
+        }
+        attempts++
+      }
+      return { number: Math.floor(Math.random() * (max - min + 1)) + min }
+    }
   }
 }
 

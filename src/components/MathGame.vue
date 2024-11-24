@@ -7,7 +7,7 @@ const props = defineProps(['level', 'operationType'])
 const emit = defineEmits(['back'])
 
 const scoreStore = useScoreStore()
-const userAnswer = ref('')
+const userAnswers = ref({})
 const showResult = ref(false)
 const message = ref('')
 const timeLeft = ref(0)
@@ -20,10 +20,26 @@ const showSessionSummary = ref(false)
 
 const num1 = ref(0)
 const num2 = ref(0)
+const currentNumber = ref(0)
 
 const operation = operations[props.operationType]
 const score = computed(() => scoreStore.getScoreForLevel(props.level.id))
-const correctAnswer = computed(() => operation.calculate(num1.value, num2.value))
+
+const correctAnswer = computed(() => {
+  if (props.operationType === 'decomposition') {
+    return operation.calculate(currentNumber.value)
+  }
+  return operation.calculate(num1.value, num2.value)
+})
+
+const decompositionPlaces = computed(() => {
+  if (props.operationType !== 'decomposition') return []
+  const places = ['unité', 'dizaine', 'centaine', 'millier']
+  return correctAnswer.value.map(digit => ({
+    ...digit,
+    name: places[digit.position] + (digit.position > 0 ? 's' : '')
+  })).reverse()
+})
 
 const timerWidth = computed(() => {
   return (timeLeft.value / props.level.timer) * 100 + '%'
@@ -49,11 +65,20 @@ function startTimer() {
 async function handleTimeout() {
   showResult.value = true
   sessionErrors.value++
-  await scoreStore.incrementErrors(props.level.id, {
-    num1: num1.value,
-    num2: num2.value,
-    operationType: props.operationType
-  })
+  
+  if (props.operationType === 'decomposition') {
+    await scoreStore.incrementErrors(props.level.id, {
+      number: currentNumber.value,
+      operationType: props.operationType
+    })
+  } else {
+    await scoreStore.incrementErrors(props.level.id, {
+      num1: num1.value,
+      num2: num2.value,
+      operationType: props.operationType
+    })
+  }
+  
   message.value = '⏰ Temps écoulé!'
   
   if (sessionProgress.value < props.level.sessionSize.count - 1) {
@@ -79,34 +104,62 @@ async function finishSession() {
 }
 
 function generateNewProblem() {
-  const numbers = operation.generateNumbers({
-    min: props.level.min,
-    max: props.level.max
-  })
-  num1.value = numbers.num1
-  num2.value = numbers.num2
-  userAnswer.value = ''
+  if (props.operationType === 'decomposition') {
+    const { number } = operation.generateNumbers({
+      min: props.level.min,
+      max: props.level.max
+    })
+    currentNumber.value = number
+  } else {
+    const numbers = operation.generateNumbers({
+      min: props.level.min,
+      max: props.level.max
+    })
+    num1.value = numbers.num1
+    num2.value = numbers.num2
+  }
+  
+  userAnswers.value = {}
   showResult.value = false
   startTimer()
 }
 
 async function checkAnswer() {
   clearInterval(timerInterval.value)
-  const answer = parseInt(userAnswer.value)
   showResult.value = true
   
-  if (answer === correctAnswer.value) {
-    await scoreStore.incrementCorrect(props.level.id)
-    sessionScore.value++
-    message.value = '🎉 Bravo! C\'est la bonne réponse!'
+  if (props.operationType === 'decomposition') {
+    const isCorrect = correctAnswer.value.every(digit => 
+      parseInt(userAnswers.value[digit.position]) === digit.value
+    )
+    
+    if (isCorrect) {
+      await scoreStore.incrementCorrect(props.level.id)
+      sessionScore.value++
+      message.value = '🎉 Bravo! C\'est la bonne décomposition!'
+    } else {
+      await scoreStore.incrementErrors(props.level.id, {
+        number: currentNumber.value,
+        operationType: props.operationType
+      })
+      sessionErrors.value++
+      message.value = '❌ Oops! Ce n\'est pas la bonne décomposition!'
+    }
   } else {
-    await scoreStore.incrementErrors(props.level.id, {
-      num1: num1.value,
-      num2: num2.value,
-      operationType: props.operationType
-    })
-    sessionErrors.value++
-    message.value = '❌ Oops! Essaie encore!'
+    const answer = parseInt(userAnswers.value[0])
+    if (answer === correctAnswer.value) {
+      await scoreStore.incrementCorrect(props.level.id)
+      sessionScore.value++
+      message.value = '🎉 Bravo! C\'est la bonne réponse!'
+    } else {
+      await scoreStore.incrementErrors(props.level.id, {
+        num1: num1.value,
+        num2: num2.value,
+        operationType: props.operationType
+      })
+      sessionErrors.value++
+      message.value = '❌ Oops! Essaie encore!'
+    }
   }
   
   if (sessionProgress.value < props.level.sessionSize.count - 1) {
@@ -150,23 +203,43 @@ generateNewProblem()
           <div class="timer-text">{{ timeLeft }}s</div>
         </div>
 
-        <div class="problem">
-          <span class="number">{{ num1 }}</span>
-          <span class="operator">{{ operation.symbol }}</span>
-          <span class="number">{{ num2 }}</span>
-          <span class="operator">=</span>
-          <input 
-            type="number" 
-            v-model="userAnswer"
-            :disabled="showResult"
-            @keyup.enter="checkAnswer"
-            placeholder="?"
-          >
-        </div>
+        <template v-if="operationType === 'decomposition'">
+          <div class="problem decomposition">
+            <div class="number">{{ currentNumber }}</div>
+            <div class="decomposition-inputs">
+              <div v-for="place in decompositionPlaces" :key="place.position" class="place-input">
+                <input 
+                  type="number" 
+                  v-model="userAnswers[place.position]"
+                  :disabled="showResult"
+                  @keyup.enter="checkAnswer"
+                  placeholder="?"
+                >
+                <label>{{ place.name }}</label>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <div class="problem">
+            <span class="number">{{ num1 }}</span>
+            <span class="operator">{{ operation.symbol }}</span>
+            <span class="number">{{ num2 }}</span>
+            <span class="operator">=</span>
+            <input 
+              type="number" 
+              v-model="userAnswers[0]"
+              :disabled="showResult"
+              @keyup.enter="checkAnswer"
+              placeholder="?"
+            >
+          </div>
+        </template>
 
         <button 
           @click="checkAnswer" 
-          :disabled="!userAnswer || showResult"
+          :disabled="(operationType === 'decomposition' ? 
+            !Object.keys(userAnswers).length : !userAnswers[0]) || showResult"
         >
           Vérifier
         </button>
@@ -206,14 +279,8 @@ generateNewProblem()
   margin-bottom: 2rem;
 }
 
-.game-header h1{
+.game-header h1 {
   color:#666;
-}
-
-.session-progress {
-  font-size: 1.2rem;
-  color: #666;
-  margin-bottom: 1rem;
 }
 
 .back-button {
@@ -228,6 +295,12 @@ generateNewProblem()
 
 .back-button:hover {
   background-color: #555;
+}
+
+.session-progress {
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 1rem;
 }
 
 .score-board {
@@ -282,6 +355,30 @@ generateNewProblem()
   gap: 1rem;
   margin-bottom: 2rem;
   font-size: 2rem;
+}
+
+.problem.decomposition {
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.decomposition-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.place-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.place-input label {
+  font-size: 0.9rem;
+  color: #666;
 }
 
 .number {

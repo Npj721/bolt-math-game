@@ -33,6 +33,19 @@ export const operations = {
       const num1 = num2 * result
       return { num1, num2 }
     }
+  },
+  decomposition: {
+    calculate: (number) => {
+      const str = number.toString()
+      const length = str.length
+      return str.split('').map((digit, index) => ({
+        value: parseInt(digit),
+        position: length - index - 1
+      }))
+    },
+    generateNumbers: ({ min, max }) => ({
+      number: Math.floor(Math.random() * (max - min + 1)) + min
+    })
   }
 }
 
@@ -77,6 +90,15 @@ export const gameCategories = [
       { id: 'div_easy', name: 'Facile', description: 'Divisions de 2 à 5', min: 2, max: 5, timer: 20 },
       { id: 'div_medium', name: 'Moyen', description: 'Divisions de 3 à 9', min: 3, max: 9, timer: 15 },
       { id: 'div_hard', name: 'Difficile', description: 'Divisions de 6 à 12', min: 6, max: 12, timer: 10 }
+    ]
+  },
+  {
+    id: 'decomposition',
+    name: 'Décomposition',
+    levels: [
+      { id: 'dec_easy', name: 'Facile', description: 'Nombres de 0 à 99', min: 0, max: 99, timer: 30 },
+      { id: 'dec_medium', name: 'Moyen', description: 'Nombres de 100 à 999', min: 100, max: 999, timer: 45 },
+      { id: 'dec_hard', name: 'Difficile', description: 'Nombres de 1000 à 9999', min: 1000, max: 9999, timer: 60 }
     ]
   }
 ]

@@ -47,20 +47,39 @@ watch(
   { deep: true }
 )
 
+// Watch showResult to reset values when it changes to false
+watch(
+  () => props.showResult,
+  (newValue, oldValue) => {
+    if (oldValue === true && newValue === false) {
+      resetValues()
+    }
+  }
+)
+
+// Reset all values
+function resetValues() {
+  Object.keys(answers).forEach(key => {
+    answers[key] = null
+  })
+  Object.keys(carries).forEach(key => {
+    carries[key] = null
+  })
+}
+
 // Validate and emit answers
 function check() {
-
   Object.keys(answers).forEach(key => {
     if (answers[key] === null || answers[key] === "") {
-      answers[key] = 0;
+      answers[key] = 0
     }
-  });
+  })
 
   Object.keys(carries).forEach(key => {
     if (carries[key] === null || carries[key] === "") {
-      carries[key] = 0;
+      carries[key] = 0
     }
-  });
+  })
   
   const isValidAnswers = Object.values(answers).every(answer => answer !== null && answer !== '')
   const isValidCarries = Object.values(carries).every(carry => carry !== null && carry !== '')

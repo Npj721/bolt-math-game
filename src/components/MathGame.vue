@@ -3,6 +3,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import { useScoreStore } from '../stores/scores'
 import { operations } from '../config/games'
 import { useSessionHistory } from '../composables/useSessionHistory'
+import ColumnAddition from './ColumnAddition.vue'
 
 const props = defineProps(['level', 'operationType'])
 const emit = defineEmits(['back'])
@@ -128,11 +129,43 @@ function generateNewProblem() {
   startTimer()
 }
 
-async function checkAnswer() {
+async function checkAnswer(value) {
   clearInterval(timerInterval.value)
   showResult.value = true
   
-  if (props.operationType === 'decomposition') {
+  if (props.operationType === 'columnAddition') {
+    const { answers, carries } = value
+    let isCorrect = true
+    let carry = 0
+    
+    for (let i = Object.keys(answers).length - 1; i >= 0; i--) {
+      const digit1 = parseInt(num1.value.toString().padStart(4, '0')[i]) || 0
+      const digit2 = parseInt(num2.value.toString().padStart(4, '0')[i]) || 0
+      const expectedCarry = Math.floor((digit1 + digit2 + carry) / 10)
+      const expectedDigit = (digit1 + digit2 + carry) % 10
+      if (parseInt(answers[i]) !== expectedDigit || 
+          (i > 0 && parseInt(carries[i-1] || 0) !== expectedCarry)) {
+        isCorrect = false
+        break
+      }
+      
+      carry = expectedCarry
+    }
+    
+    if (isCorrect) {
+      await scoreStore.incrementCorrect(props.level.id)
+      sessionScore.value++
+      message.value = '🎉 Bravo! C\'est la bonne réponse!'
+    } else {
+      await scoreStore.incrementErrors(props.level.id, {
+        num1: num1.value,
+        num2: num2.value,
+        operationType: props.operationType
+      })
+      sessionErrors.value++
+      message.value = '❌ Oops! Ce n\'est pas la bonne réponse!'
+    }
+  } else if (props.operationType === 'decomposition') {
     const isCorrect = correctAnswer.value.every(digit => 
       parseInt(userAnswers.value[digit.position]) === digit.value
     )
@@ -224,6 +257,15 @@ generateNewProblem()
             </div>
           </div>
         </template>
+        <template v-else-if="operationType === 'columnAddition'">
+          <ColumnAddition
+            :num1="num1"
+            :num2="num2"
+            :showResult="showResult"
+            v-model="userAnswers"
+            @check="checkAnswer"
+          />
+        </template>
         <template v-else>
           <div class="problem">
             <span class="number">{{ num1 }}</span>
@@ -238,15 +280,13 @@ generateNewProblem()
               placeholder="?"
             >
           </div>
+          <button 
+            @click="checkAnswer" 
+            :disabled="!userAnswers[0] || showResult"
+          >
+            Vérifier
+          </button>
         </template>
-
-        <button 
-          @click="checkAnswer" 
-          :disabled="(operationType === 'decomposition' ? 
-            !Object.keys(userAnswers).length : !userAnswers[0]) || showResult"
-        >
-          Vérifier
-        </button>
 
         <p class="message" :class="{ 'success': message.includes('Bravo') }">
           {{ showResult ? message : '&nbsp;' }}
@@ -418,6 +458,7 @@ button {
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s;
+  margin-top: 1rem;
 }
 
 button:hover:not(:disabled) {

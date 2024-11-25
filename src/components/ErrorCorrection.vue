@@ -2,12 +2,14 @@
 import { ref, computed } from 'vue'
 import { useScoreStore } from '../stores/scores'
 import { operations } from '../config/games'
+import ColumnAddition from './ColumnAddition.vue'
 
 const props = defineProps(['level', 'operationType'])
 const emit = defineEmits(['back'])
 
 const scoreStore = useScoreStore()
 const userAnswer = ref('')
+const userColumnAnswer = ref({})
 const showResult = ref(false)
 const message = ref('')
 const currentErrorIndex = ref(0)
@@ -18,32 +20,72 @@ const hasErrors = computed(() => errors.value.length > 0)
 const operation = computed(() => operations[props.operationType])
 const correctAnswer = computed(() => {
   if (!currentError.value) return null
+  if (props.operationType === 'columnAddition') {
+    return operation.value.calculate(
+      currentError.value.num1,
+      currentError.value.num2
+    )
+  }
   return operation.value.calculate(
     currentError.value.num1,
     currentError.value.num2
   )
 })
 
-async function checkAnswer() {
-  const answer = parseInt(userAnswer.value)
+async function checkAnswer(value) {
   showResult.value = true
   
-  if (answer === correctAnswer.value) {
-    await scoreStore.incrementCorrect(props.level.id)
-    await scoreStore.removeError(props.level.id, currentErrorIndex.value)
-    message.value = '🎉 Bravo! Tu as corrigé cette erreur!'
+  if (props.operationType === 'columnAddition') {
+    const { answers, carries } = value
+    let isCorrect = true
+    let carry = 0
     
-    if (currentErrorIndex.value >= errors.value.length) {
-      currentErrorIndex.value = Math.max(0, errors.value.length - 1)
+    for (let i = Object.keys(answers).length - 1; i >= 0; i--) {
+      const digit1 = parseInt(currentError.value.num1.toString().padStart(4, '0')[i]) || 0
+      const digit2 = parseInt(currentError.value.num2.toString().padStart(4, '0')[i]) || 0
+      const expectedCarry = Math.floor((digit1 + digit2 + carry) / 10)
+      const expectedDigit = (digit1 + digit2 + carry) % 10
+      
+      if (parseInt(answers[i]) !== expectedDigit || 
+          (i > 0 && parseInt(carries[i-1] || 0) !== expectedCarry)) {
+        isCorrect = false
+        break
+      }
+      
+      carry = expectedCarry
+    }
+    
+    if (isCorrect) {
+      await scoreStore.incrementCorrect(props.level.id)
+      await scoreStore.removeError(props.level.id, currentErrorIndex.value)
+      message.value = '🎉 Bravo! Tu as corrigé cette erreur!'
+      
+      if (currentErrorIndex.value >= errors.value.length) {
+        currentErrorIndex.value = Math.max(0, errors.value.length - 1)
+      }
+    } else {
+      message.value = '❌ Ce n\'est pas encore ça, essaie encore!'
     }
   } else {
-    message.value = '❌ Ce n\'est pas encore ça, essaie encore!'
+    const answer = parseInt(userAnswer.value)
+    if (answer === correctAnswer.value) {
+      await scoreStore.incrementCorrect(props.level.id)
+      await scoreStore.removeError(props.level.id, currentErrorIndex.value)
+      message.value = '🎉 Bravo! Tu as corrigé cette erreur!'
+      
+      if (currentErrorIndex.value >= errors.value.length) {
+        currentErrorIndex.value = Math.max(0, errors.value.length - 1)
+      }
+    } else {
+      message.value = '❌ Ce n\'est pas encore ça, essaie encore!'
+    }
   }
   
   setTimeout(() => {
     showResult.value = false
     message.value = ''
     userAnswer.value = ''
+    userColumnAnswer.value = {}
   }, 2000)
 }
 </script>
@@ -70,26 +112,37 @@ async function checkAnswer() {
       </div>
 
       <div class="problem-container">
-        <div class="problem">
-          <span class="number">{{ currentError.num1 }}</span>
-          <span class="operator">{{ operation.symbol }}</span>
-          <span class="number">{{ currentError.num2 }}</span>
-          <span class="operator">=</span>
-          <input 
-            type="number" 
-            v-model="userAnswer"
-            :disabled="showResult"
-            @keyup.enter="checkAnswer"
-            placeholder="?"
-          >
-        </div>
+        <template v-if="operationType === 'columnAddition'">
+          <ColumnAddition
+            :num1="currentError.num1"
+            :num2="currentError.num2"
+            :showResult="showResult"
+            v-model="userColumnAnswer"
+            @check="checkAnswer"
+          />
+        </template>
+        <template v-else>
+          <div class="problem">
+            <span class="number">{{ currentError.num1 }}</span>
+            <span class="operator">{{ operation.symbol }}</span>
+            <span class="number">{{ currentError.num2 }}</span>
+            <span class="operator">=</span>
+            <input 
+              type="number" 
+              v-model="userAnswer"
+              :disabled="showResult"
+              @keyup.enter="checkAnswer"
+              placeholder="?"
+            >
+          </div>
 
-        <button 
-          @click="checkAnswer" 
-          :disabled="!userAnswer || showResult"
-        >
-          Vérifier
-        </button>
+          <button 
+            @click="checkAnswer" 
+            :disabled="!userAnswer || showResult"
+          >
+            Vérifier
+          </button>
+        </template>
 
         <p class="message" :class="{ 'success': message.includes('Bravo') }">
           {{ showResult ? message : '&nbsp;' }}
@@ -200,6 +253,7 @@ button {
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s;
+  margin-top: 1rem;
 }
 
 button:hover:not(:disabled) {

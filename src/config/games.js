@@ -12,7 +12,25 @@ export const operations = {
         }
         attempts++
       }
-      // Si on ne trouve pas de nouvelle combinaison, on renvoie une au hasard
+      return {
+        num1: Math.floor(Math.random() * (max - min + 1)) + min,
+        num2: Math.floor(Math.random() * (max - min + 1)) + min
+      }
+    }
+  },
+  columnAddition: {
+    calculate: (a, b) => a + b,
+    symbol: '+',
+    generateNumbers: ({ min, max }, isInHistory, maxAttempts = 10) => {
+      let attempts = 0
+      while (attempts < maxAttempts) {
+        const num1 = Math.floor(Math.random() * (max - min + 1)) + min
+        const num2 = Math.floor(Math.random() * (max - min + 1)) + min
+        if (!isInHistory({ num1, num2 })) {
+          return { num1, num2 }
+        }
+        attempts++
+      }
       return {
         num1: Math.floor(Math.random() * (max - min + 1)) + min,
         num2: Math.floor(Math.random() * (max - min + 1)) + min
@@ -32,7 +50,6 @@ export const operations = {
         }
         attempts++
       }
-      // Si on ne trouve pas de nouvelle combinaison
       const num2 = Math.floor(Math.random() * (max - min + 1)) + min
       return {
         num1: num2 + Math.floor(Math.random() * (max - num2)) + min,
@@ -115,6 +132,15 @@ export const gameCategories = [
       { id: 'add_easy', name: 'Facile', description: 'Additions de 1 à 10', min: 1, max: 10, timer: 20 },
       { id: 'add_medium', name: 'Moyen', description: 'Additions de 10 à 30', min: 10, max: 30, timer: 15 },
       { id: 'add_hard', name: 'Difficile', description: 'Additions de 20 à 100', min: 20, max: 100, timer: 10 }
+    ]
+  },
+  {
+    id: 'columnAddition',
+    name: 'Additions posées',
+    levels: [
+      { id: 'col_add_easy', name: 'Facile', description: 'Additions posées de 10 à 99', min: 10, max: 99, timer: 60 },
+      { id: 'col_add_medium', name: 'Moyen', description: 'Additions posées de 100 à 999', min: 100, max: 999, timer: 90 },
+      { id: 'col_add_hard', name: 'Difficile', description: 'Additions posées de 1000 à 9999', min: 1000, max: 9999, timer: 120 }
     ]
   },
   {

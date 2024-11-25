@@ -142,6 +142,7 @@ function check() {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  color: #666;;
 }
 
 .row {
@@ -163,6 +164,8 @@ input {
   font-size: 1.2rem;
   text-align: center;
   border: 2px solid #42b883;
+  background-color: white;
+  color:#666;
   border-radius: 8px;
 }
 

@@ -8,7 +8,7 @@ const props = defineProps(['level', 'operationType'])
 const emit = defineEmits(['back'])
 
 const scoreStore = useScoreStore()
-const userAnswer = ref('')
+const userAnswer = ref({}) // Initialize as an object instead of a string
 const userColumnAnswer = ref({})
 const showResult = ref(false)
 const message = ref('')
@@ -26,10 +26,22 @@ const correctAnswer = computed(() => {
       currentError.value.num2
     )
   }
+  if (props.operationType === 'decomposition') {
+    return operation.value.calculate(currentError.value.number)
+  }
   return operation.value.calculate(
     currentError.value.num1,
     currentError.value.num2
   )
+})
+
+const decompositionPlaces = computed(() => {
+  if (props.operationType !== 'decomposition' || !currentError.value) return []
+  const places = ['unité', 'dizaine', 'centaine', 'millier']
+  return correctAnswer.value.map(digit => ({
+    ...digit,
+    name: places[digit.position] + (digit.position > 0 ? 's' : '')
+  })).reverse()
 })
 
 async function checkAnswer(value) {
@@ -66,8 +78,24 @@ async function checkAnswer(value) {
     } else {
       message.value = '❌ Ce n\'est pas encore ça, essaie encore!'
     }
+  } else if (props.operationType === 'decomposition') {
+    const isCorrect = correctAnswer.value.every(digit => 
+      parseInt(userAnswer.value[digit.position]) === digit.value
+    )
+    
+    if (isCorrect) {
+      await scoreStore.incrementCorrect(props.level.id)
+      await scoreStore.removeError(props.level.id, currentErrorIndex.value)
+      message.value = '🎉 Bravo! Tu as corrigé cette erreur!'
+      
+      if (currentErrorIndex.value >= errors.value.length) {
+        currentErrorIndex.value = Math.max(0, errors.value.length - 1)
+      }
+    } else {
+      message.value = '❌ Ce n\'est pas encore ça, essaie encore!'
+    }
   } else {
-    const answer = parseInt(userAnswer.value)
+    const answer = parseInt(userAnswer.value[0])
     if (answer === correctAnswer.value) {
       await scoreStore.incrementCorrect(props.level.id)
       await scoreStore.removeError(props.level.id, currentErrorIndex.value)
@@ -84,7 +112,7 @@ async function checkAnswer(value) {
   setTimeout(() => {
     showResult.value = false
     message.value = ''
-    userAnswer.value = ''
+    userAnswer.value = {}
     userColumnAnswer.value = {}
   }, 2000)
 }
@@ -121,6 +149,30 @@ async function checkAnswer(value) {
             @check="checkAnswer"
           />
         </template>
+        <template v-else-if="operationType === 'decomposition'">
+          <div class="problem decomposition">
+            <div class="number">{{ currentError.number }}</div>
+            <div class="decomposition-inputs">
+              <div v-for="place in decompositionPlaces" :key="place.position" class="place-input">
+                <input 
+                  type="number" 
+                  v-model="userAnswer[place.position]"
+                  :disabled="showResult"
+                  @keyup.enter="checkAnswer"
+                  placeholder="?"
+                >
+                <label>{{ place.name }}</label>
+              </div>
+            </div>
+            <button 
+              @click="checkAnswer" 
+              :disabled="Object.keys(userAnswer).length !== decompositionPlaces.length || showResult"
+              class="verify-button"
+            >
+              Vérifier
+            </button>
+          </div>
+        </template>
         <template v-else>
           <div class="problem">
             <span class="number">{{ currentError.num1 }}</span>
@@ -129,7 +181,7 @@ async function checkAnswer(value) {
             <span class="operator">=</span>
             <input 
               type="number" 
-              v-model="userAnswer"
+              v-model="userAnswer[0]"
               :disabled="showResult"
               @keyup.enter="checkAnswer"
               placeholder="?"
@@ -138,7 +190,7 @@ async function checkAnswer(value) {
 
           <button 
             @click="checkAnswer" 
-            :disabled="!userAnswer || showResult"
+            :disabled="!userAnswer[0] || showResult"
           >
             Vérifier
           </button>
@@ -220,6 +272,30 @@ async function checkAnswer(value) {
   font-size: 2rem;
 }
 
+.problem.decomposition {
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.decomposition-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.place-input {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.place-input label {
+  font-size: 0.9rem;
+  color: #666;
+}
+
 .number {
   font-weight: bold;
   color: #2c3e50;
@@ -274,6 +350,10 @@ button:disabled {
 
 .message.success {
   color: #42b883;
+}
+
+.verify-button {
+  margin-top: 2rem;
 }
 
 .return-button {

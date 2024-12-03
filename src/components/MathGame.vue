@@ -255,6 +255,13 @@ generateNewProblem()
                 <label>{{ place.name }}</label>
               </div>
             </div>
+            <button 
+              @click="checkAnswer" 
+              :disabled="Object.keys(userAnswers).length !== decompositionPlaces.length || showResult"
+              class="verify-button"
+            >
+              Vérifier
+            </button>
           </div>
         </template>
         <template v-else-if="operationType === 'columnAddition'">
@@ -502,5 +509,9 @@ button:disabled {
   font-size: 1.2rem;
   margin: 0.5rem 0;
   color: #2c3e50;
+}
+
+.verify-button {
+  margin-top: 2rem;
 }
 </style>

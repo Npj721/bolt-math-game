@@ -4,6 +4,7 @@ import { useScoreStore } from '../stores/scores'
 import { operations } from '../config/games'
 import { useSessionHistory } from '../composables/useSessionHistory'
 import ColumnAddition from './ColumnAddition.vue'
+import ColumnSubtraction from './ColumnSubtraction.vue'
 
 const props = defineProps(['level', 'operationType'])
 const emit = defineEmits(['back'])
@@ -34,6 +35,9 @@ const correctAnswer = computed(() => {
   }
   return operation.calculate(num1.value, num2.value)
 })
+
+const digits1 = computed(() => props.num1?.toString().padStart(4, '0').split('').map(Number))
+const digits2 = computed(() => props.num2?.toString().padStart(4, '0').split('').map(Number))
 
 const decompositionPlaces = computed(() => {
   if (props.operationType !== 'decomposition') return []
@@ -143,6 +147,7 @@ async function checkAnswer(value) {
       const digit2 = parseInt(num2.value.toString().padStart(4, '0')[i]) || 0
       const expectedCarry = Math.floor((digit1 + digit2 + carry) / 10)
       const expectedDigit = (digit1 + digit2 + carry) % 10
+      
       if (parseInt(answers[i]) !== expectedDigit || 
           (i > 0 && parseInt(carries[i-1] || 0) !== expectedCarry)) {
         isCorrect = false
@@ -150,6 +155,42 @@ async function checkAnswer(value) {
       }
       
       carry = expectedCarry
+    }
+    
+    if (isCorrect) {
+      await scoreStore.incrementCorrect(props.level.id)
+      sessionScore.value++
+      message.value = '🎉 Bravo! C\'est la bonne réponse!'
+    } else {
+      await scoreStore.incrementErrors(props.level.id, {
+        num1: num1.value,
+        num2: num2.value,
+        operationType: props.operationType
+      })
+      sessionErrors.value++
+      message.value = '❌ Oops! Ce n\'est pas la bonne réponse!'
+    }
+  } else if (props.operationType === 'columnSubtraction') {
+    const { answers, borrows } = value
+    let isCorrect = true
+    let digits1Copy = [...digits1.value]
+    
+    for (let i = digits1Copy.length - 1; i >= 0; i--) {
+      if (parseInt(borrows[i] || 0) === 1) {
+        if (i > 0) {
+          digits1Copy[i-1]--
+          digits1Copy[i] += 10
+        } else {
+          isCorrect = false
+          break
+        }
+      }
+      
+      const expectedDigit = digits1Copy[i] - digits2.value[i]
+      if (expectedDigit < 0 || parseInt(answers[i]) !== expectedDigit) {
+        isCorrect = false
+        break
+      }
     }
     
     if (isCorrect) {
@@ -273,6 +314,15 @@ generateNewProblem()
             @check="checkAnswer"
           />
         </template>
+        <template v-else-if="operationType === 'columnSubtraction'">
+          <ColumnSubtraction
+            :num1="num1"
+            :num2="num2"
+            :showResult="showResult"
+            v-model="userAnswers"
+            @check="checkAnswer"
+          />
+        </template>
         <template v-else>
           <div class="problem">
             <span class="number">{{ num1 }}</span>
@@ -331,7 +381,7 @@ generateNewProblem()
 }
 
 .game-header h1 {
-  color:#666;
+  color: #666;
 }
 
 .back-button {
@@ -359,7 +409,7 @@ generateNewProblem()
   justify-content: space-around;
   margin-bottom: 2rem;
   font-size: 1.2rem;
-  color:#666;
+  color: #666;
 }
 
 .problem-container {

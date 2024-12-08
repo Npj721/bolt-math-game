@@ -37,6 +37,26 @@ export const operations = {
       }
     }
   },
+  columnSubtraction: {
+    calculate: (a, b) => a - b,
+    symbol: '-',
+    generateNumbers: ({ min, max }, isInHistory, maxAttempts = 10) => {
+      let attempts = 0
+      while (attempts < maxAttempts) {
+        const num2 = Math.floor(Math.random() * (max - min + 1)) + min
+        const num1 = num2 + Math.floor(Math.random() * (max - num2)) + min
+        if (!isInHistory({ num1, num2 })) {
+          return { num1, num2 }
+        }
+        attempts++
+      }
+      const num2 = Math.floor(Math.random() * (max - min + 1)) + min
+      return {
+        num1: num2 + Math.floor(Math.random() * (max - num2)) + min,
+        num2
+      }
+    }
+  },
   subtraction: {
     calculate: (a, b) => a - b,
     symbol: '-',
@@ -141,6 +161,15 @@ export const gameCategories = [
       { id: 'col_add_easy', name: 'Facile', description: 'Additions posées de 10 à 99', min: 10, max: 99, timer: 60 },
       { id: 'col_add_medium', name: 'Moyen', description: 'Additions posées de 100 à 999', min: 100, max: 999, timer: 90 },
       { id: 'col_add_hard', name: 'Difficile', description: 'Additions posées de 1000 à 9999', min: 1000, max: 9999, timer: 120 }
+    ]
+  },
+  {
+    id: 'columnSubtraction',
+    name: 'Soustractions posées',
+    levels: [
+      { id: 'col_sub_easy', name: 'Facile', description: 'Soustractions posées de 10 à 99', min: 10, max: 99, timer: 60 },
+      { id: 'col_sub_medium', name: 'Moyen', description: 'Soustractions posées de 100 à 999', min: 100, max: 999, timer: 90 },
+      { id: 'col_sub_hard', name: 'Difficile', description: 'Soustractions posées de 1000 à 9999', min: 1000, max: 9999, timer: 120 }
     ]
   },
   {

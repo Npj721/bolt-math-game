@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useScoreStore } from '../stores/scores'
 import { operations } from '../config/games'
 import ColumnAddition from './ColumnAddition.vue'
+import ColumnSubtraction from './ColumnSubtraction.vue'
 
 const props = defineProps(['level', 'operationType'])
 const emit = defineEmits(['back'])
@@ -20,7 +21,7 @@ const hasErrors = computed(() => errors.value.length > 0)
 const operation = computed(() => operations[props.operationType])
 const correctAnswer = computed(() => {
   if (!currentError.value) return null
-  if (props.operationType === 'columnAddition') {
+  if (props.operationType === 'columnAddition' || props.operationType === 'columnSubtraction') {
     return operation.value.calculate(
       currentError.value.num1,
       currentError.value.num2
@@ -47,25 +48,8 @@ const decompositionPlaces = computed(() => {
 async function checkAnswer(value) {
   showResult.value = true
   
-  if (props.operationType === 'columnAddition') {
-    const { answers, carries } = value
-    let isCorrect = true
-    let carry = 0
-    
-    for (let i = Object.keys(answers).length - 1; i >= 0; i--) {
-      const digit1 = parseInt(currentError.value.num1.toString().padStart(4, '0')[i]) || 0
-      const digit2 = parseInt(currentError.value.num2.toString().padStart(4, '0')[i]) || 0
-      const expectedCarry = Math.floor((digit1 + digit2 + carry) / 10)
-      const expectedDigit = (digit1 + digit2 + carry) % 10
-      
-      if (parseInt(answers[i]) !== expectedDigit || 
-          (i > 0 && parseInt(carries[i-1] || 0) !== expectedCarry)) {
-        isCorrect = false
-        break
-      }
-      
-      carry = expectedCarry
-    }
+  if (props.operationType === 'columnAddition' || props.operationType === 'columnSubtraction') {
+    const isCorrect = value.isCorrect
     
     if (isCorrect) {
       await scoreStore.incrementCorrect(props.level.id)
@@ -142,6 +126,15 @@ async function checkAnswer(value) {
       <div class="problem-container">
         <template v-if="operationType === 'columnAddition'">
           <ColumnAddition
+            :num1="currentError.num1"
+            :num2="currentError.num2"
+            :showResult="showResult"
+            v-model="userColumnAnswer"
+            @check="checkAnswer"
+          />
+        </template>
+        <template v-else-if="operationType === 'columnSubtraction'">
+          <ColumnSubtraction
             :num1="currentError.num1"
             :num2="currentError.num2"
             :showResult="showResult"

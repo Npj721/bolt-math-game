@@ -13,6 +13,10 @@ const props = defineProps({
   showResult: {
     type: Boolean,
     default: false
+  },
+  correctAnswer: {
+    type: Object,
+    default: null
   }
 })
 
@@ -50,6 +54,21 @@ watch(
       resetValues()
     }
   }
+)
+
+watch(
+  () => props.correctAnswer,
+  (newValue) => {
+    if (newValue) {
+      Object.keys(newValue.answers).forEach(key => {
+        answers[key] = newValue.answers[key]
+      })
+      Object.keys(newValue.borrows).forEach(key => {
+        borrows[key] = newValue.borrows[key]
+      })
+    }
+  },
+  { immediate: true }
 )
 
 function resetValues() {
@@ -152,7 +171,6 @@ function check() {
     <button 
       class="check-button"
       @click="check"
-      :disabled="showResult"
     >
       Vérifier
     </button>

@@ -9,9 +9,10 @@ const props = defineProps(['level', 'operationType'])
 const emit = defineEmits(['back'])
 
 const scoreStore = useScoreStore()
-const userAnswer = ref({}) // Initialize as an object instead of a string
+const userAnswer = ref({})
 const userColumnAnswer = ref({})
 const showResult = ref(false)
+const showCorrectAnswer = ref(false)
 const message = ref('')
 const currentErrorIndex = ref(0)
 
@@ -36,6 +37,42 @@ const correctAnswer = computed(() => {
   )
 })
 
+const correctColumnAnswer = computed(() => {
+  if (!currentError.value || (props.operationType !== 'columnAddition' && props.operationType !== 'columnSubtraction')) {
+    return null
+  }
+
+  const num1 = currentError.value.num1.toString().padStart(4, '0').split('').map(Number)
+  const num2 = currentError.value.num2.toString().padStart(4, '0').split('').map(Number)
+  const result = correctAnswer.value.toString().padStart(4, '0').split('').map(Number)
+  
+  if (props.operationType === 'columnAddition') {
+    const carries = { 0: 0, 1: 0, 2: 0, 3: 0 }
+    let carry = 0
+    for (let i = 3; i >= 0; i--) {
+      const sum = num1[i] + num2[i] + carry
+      carry = Math.floor(sum / 10)
+      if (carry > 0 && i > 0) {
+        carries[i - 1] = carry
+      }
+    }
+    return { answers: result, carries }
+  } else {
+    const borrows = { 0: 0, 1: 0, 2: 0, 3: 0 }
+    let num1Copy = [...num1]
+    for (let i = 3; i >= 0; i--) {
+      if (num1Copy[i] < num2[i]) {
+        if (i > 0) {
+          borrows[i] = 1
+          num1Copy[i] += 10
+          num1Copy[i - 1] -= 1
+        }
+      }
+    }
+    return { answers: result, borrows }
+  }
+})
+
 const decompositionPlaces = computed(() => {
   if (props.operationType !== 'decomposition' || !currentError.value) return []
   const places = ['unité', 'dizaine', 'centaine', 'millier']
@@ -47,6 +84,7 @@ const decompositionPlaces = computed(() => {
 
 async function checkAnswer(value) {
   showResult.value = true
+  showCorrectAnswer.value = false
   
   if (props.operationType === 'columnAddition' || props.operationType === 'columnSubtraction') {
     const isCorrect = value.isCorrect
@@ -100,6 +138,10 @@ async function checkAnswer(value) {
     userColumnAnswer.value = {}
   }, 2000)
 }
+
+function revealAnswer() {
+  showCorrectAnswer.value = true
+}
 </script>
 
 <template>
@@ -125,7 +167,19 @@ async function checkAnswer(value) {
 
       <div class="problem-container">
         <template v-if="operationType === 'columnAddition'">
+          <div class="correct-answer" v-if="showCorrectAnswer">
+            <p class="hint-text">La bonne réponse est :</p>
+            <ColumnAddition
+              :num1="currentError.num1"
+              :num2="currentError.num2"
+              :showResult="true"
+              :correctAnswer="correctColumnAnswer"
+              v-model="userColumnAnswer"
+              @check="checkAnswer"
+            />
+          </div>
           <ColumnAddition
+            v-else
             :num1="currentError.num1"
             :num2="currentError.num2"
             :showResult="showResult"
@@ -134,7 +188,19 @@ async function checkAnswer(value) {
           />
         </template>
         <template v-else-if="operationType === 'columnSubtraction'">
+          <div class="correct-answer" v-if="showCorrectAnswer">
+            <p class="hint-text">La bonne réponse est :</p>
+            <ColumnSubtraction
+              :num1="currentError.num1"
+              :num2="currentError.num2"
+              :showResult="true"
+              :correctAnswer="correctColumnAnswer"
+              v-model="userColumnAnswer"
+              @check="checkAnswer"
+            />
+          </div>
           <ColumnSubtraction
+            v-else
             :num1="currentError.num1"
             :num2="currentError.num2"
             :showResult="showResult"
@@ -155,11 +221,14 @@ async function checkAnswer(value) {
                   placeholder="?"
                 >
                 <label>{{ place.name }}</label>
+                <span v-if="showCorrectAnswer" class="correct-value">
+                  Réponse : {{ place.value }}
+                </span>
               </div>
             </div>
             <button 
               @click="checkAnswer" 
-              :disabled="Object.keys(userAnswer).length !== decompositionPlaces.length || showResult"
+              :disabled="Object.keys(userAnswer).length !== decompositionPlaces.length"
               class="verify-button"
             >
               Vérifier
@@ -179,15 +248,26 @@ async function checkAnswer(value) {
               @keyup.enter="checkAnswer"
               placeholder="?"
             >
+            <span v-if="showCorrectAnswer" class="correct-value">
+              Réponse : {{ correctAnswer }}
+            </span>
           </div>
 
           <button 
             @click="checkAnswer" 
-            :disabled="!userAnswer[0] || showResult"
+            :disabled="!userAnswer[0]"
           >
             Vérifier
           </button>
         </template>
+
+        <button 
+          @click="revealAnswer"
+          class="reveal-button"
+          :disabled="showResult || showCorrectAnswer"
+        >
+          Révéler la réponse
+        </button>
 
         <p class="message" :class="{ 'success': message.includes('Bravo') }">
           {{ showResult ? message : '&nbsp;' }}
@@ -351,5 +431,30 @@ button:disabled {
 
 .return-button {
   margin-top: 1rem;
+}
+
+.reveal-button {
+  background-color: #e67e22;
+  margin-left: 1rem;
+}
+
+.reveal-button:hover:not(:disabled) {
+  background-color: #d35400;
+}
+
+.correct-answer {
+  margin-bottom: 2rem;
+}
+
+.hint-text {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.correct-value {
+  color: #e67e22;
+  font-size: 1rem;
+  margin-top: 0.5rem;
 }
 </style>

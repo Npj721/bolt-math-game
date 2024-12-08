@@ -1,7 +1,6 @@
 <script setup>
 import { reactive, computed, watch } from 'vue'
 
-// Props
 const props = defineProps({
   num1: {
     type: Number,
@@ -14,13 +13,15 @@ const props = defineProps({
   showResult: {
     type: Boolean,
     default: false
+  },
+  correctAnswer: {
+    type: Object,
+    default: null
   }
 })
 
-// Emits
 const emit = defineEmits(['check', 'update:modelValue'])
 
-// Reactive state for user answers and carries
 const answers = reactive({
   0: null,
   1: null,
@@ -34,11 +35,9 @@ const carries = reactive({
   3: null
 })
 
-// Computed: Split numbers into digits
 const digits1 = computed(() => props.num1.toString().padStart(4, '0').split('').map(Number))
 const digits2 = computed(() => props.num2.toString().padStart(4, '0').split('').map(Number))
 
-// Watch for model updates
 watch(
   () => ({ answers, carries }),
   () => {
@@ -47,7 +46,6 @@ watch(
   { deep: true }
 )
 
-// Watch showResult to reset values when it changes to false
 watch(
   () => props.showResult,
   (newValue, oldValue) => {
@@ -57,7 +55,21 @@ watch(
   }
 )
 
-// Reset all values
+watch(
+  () => props.correctAnswer,
+  (newValue) => {
+    if (newValue) {
+      Object.keys(newValue.answers).forEach(key => {
+        answers[key] = newValue.answers[key]
+      })
+      Object.keys(newValue.carries).forEach(key => {
+        carries[key] = newValue.carries[key]
+      })
+    }
+  },
+  { immediate: true }
+)
+
 function resetValues() {
   Object.keys(answers).forEach(key => {
     answers[key] = null
@@ -67,7 +79,6 @@ function resetValues() {
   })
 }
 
-// Validate and emit answers
 function check() {
   Object.keys(answers).forEach(key => {
     if (answers[key] === null || answers[key] === "") {
@@ -130,7 +141,6 @@ function check() {
     <button 
       class="check-button"
       @click="check"
-      :disabled="showResult"
     >
       Vérifier
     </button>

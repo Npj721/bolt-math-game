@@ -222,7 +222,7 @@ generateNewProblem()
             </div>
             <button 
               @click="checkAnswer" 
-              :disabled="Object.keys(userAnswers).length !== decompositionPlaces.length || showResult"
+              :disabled="Object.keys(userAnswers).length !== decompositionPlaces.length"
               class="verify-button"
             >
               Vérifier
@@ -263,7 +263,7 @@ generateNewProblem()
           </div>
           <button 
             @click="checkAnswer" 
-            :disabled="!userAnswers[0] || showResult"
+            :disabled="!userAnswers[0]"
           >
             Vérifier
           </button>

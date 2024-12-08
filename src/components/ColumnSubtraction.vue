@@ -32,8 +32,8 @@ const borrows = reactive({
   3: null
 })
 
-const digits1 = computed(() => props.num1.toString().padStart(4, '0').split('').map(Number))
-const digits2 = computed(() => props.num2.toString().padStart(4, '0').split('').map(Number))
+const digits1 = computed(() => String(props.num1).padStart(4, '0').split('').map(Number))
+const digits2 = computed(() => String(props.num2).padStart(4, '0').split('').map(Number))
 
 watch(
   () => ({ answers, borrows }),
@@ -61,7 +61,39 @@ function resetValues() {
   })
 }
 
+function validateSubtraction() {
+  if (!props.num1 || !props.num2) {
+    console.error('Invalid numbers for subtraction')
+    return false
+  }
+
+  let digits1Copy = [...digits1.value]
+  
+  // Validate borrows
+  for (let i = digits1Copy.length - 1; i >= 0; i--) {
+    if (parseInt(borrows[i] || 0) === 1) {
+      if (i > 0) {
+        digits1Copy[i-1]--
+        digits1Copy[i] += 10
+      } else {
+        return false
+      }
+    }
+  }
+
+  // Validate each digit
+  for (let i = digits1Copy.length - 1; i >= 0; i--) {
+    const expectedDigit = digits1Copy[i] - digits2.value[i]
+    if (expectedDigit < 0 || parseInt(answers[i]) !== expectedDigit) {
+      return false
+    }
+  }
+
+  return true
+}
+
 function check() {
+  // Ensure all answers and borrows have values (default to 0 if empty)
   Object.keys(answers).forEach(key => {
     if (answers[key] === null || answers[key] === "") {
       answers[key] = 0
@@ -73,16 +105,9 @@ function check() {
       borrows[key] = 0
     }
   })
-  
-  const isValidAnswers = Object.values(answers).every(answer => answer !== null && answer !== '')
-  const isValidBorrows = Object.values(borrows).every(borrow => borrow !== null && borrow !== '')
 
-  if (!isValidAnswers || !isValidBorrows) {
-    console.error('Incomplete data in answers or borrows:', { answers, borrows })
-    return
-  }
-
-  emit('check', { answers, borrows })
+  const isValid = validateSubtraction()
+  emit('check', { answers, borrows, isCorrect: isValid })
 }
 </script>
 
@@ -94,6 +119,8 @@ function check() {
           v-model="borrows[index]"
           :disabled="showResult"
           type="number"
+          min="0"
+          max="1"
           placeholder=" "
           aria-label="Borrow"
         />
@@ -115,6 +142,8 @@ function check() {
           v-model="answers[index]"
           :disabled="showResult"
           type="number"
+          min="0"
+          max="9"
           placeholder="?"
           aria-label="Answer"
         />

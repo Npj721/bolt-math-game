@@ -22,11 +22,7 @@ function hasErrors(levelId) {
 }
 
 function selectLevel(level) {
-  if (props.category.id === 'grid') {
-    emit('selectLevel', level)
-  } else {
-    selectedLevel.value = level
-  }
+  selectedLevel.value = level
 }
 
 function startSession(sessionSize) {
@@ -86,7 +82,7 @@ function closeHistory() {
       </div>
     </div>
 
-    <div v-else-if="selectedLevel && !showHistory && category.id !== 'grid'" class="session-selection">
+    <div v-else-if="selectedLevel && !showHistory" class="session-selection">
       <h2>{{ selectedLevel.name }} - Choisir la durée de la session</h2>
       <div class="session-grid">
         <div 
@@ -96,7 +92,7 @@ function closeHistory() {
           @click="startSession(session)"
         >
           <h3>{{ session.name }}</h3>
-          <p>{{ session.count }} calculs</p>
+          <p>{{ session.count }} {{ category.id === 'grid' ? 'grilles' : 'calculs' }}</p>
           <div class="best-score" v-if="scoreStore.getBestSession(selectedLevel.id, session.id)">
             <p>Meilleur score: {{ scoreStore.getBestSession(selectedLevel.id, session.id).score }}</p>
             <p>Meilleur temps: {{ Math.round(scoreStore.getBestSession(selectedLevel.id, session.id).totalTime) }}s</p>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useScoreStore } from '../stores/scores'
 import { useGrid } from '../composables/useGrid'
 
@@ -17,6 +17,15 @@ const message = ref('')
 const showResult = ref(false)
 const timeLeft = ref(props.level.timer)
 const timerInterval = ref(null)
+const sessionProgress = ref(0)
+const sessionScore = ref(0)
+const sessionErrors = ref(0)
+const sessionStartTime = ref(Date.now())
+const showSessionSummary = ref(false)
+
+const sessionTimeElapsed = computed(() => {
+  return (Date.now() - sessionStartTime.value) / 1000
+})
 
 onMounted(() => {
   initGrid()
@@ -36,18 +45,40 @@ function startTimer() {
   }, 1000)
 }
 
-function handleTimeout() {
+async function handleTimeout() {
   showResult.value = true
+  sessionErrors.value++
   message.value = '⏰ Temps écoulé!'
-  setTimeout(() => {
-    initGrid()
-    startTimer()
-    showResult.value = false
-    message.value = ''
-  }, 2000)
+  
+  if (sessionProgress.value < props.level.sessionSize.count - 1) {
+    setTimeout(() => {
+      sessionProgress.value++
+      initGrid()
+      startTimer()
+      showResult.value = false
+      message.value = ''
+    }, 2000)
+  } else {
+    await finishSession()
+  }
 }
 
-function handleCellClick(row, col) {
+async function finishSession() {
+  clearInterval(timerInterval.value)
+  const totalTime = sessionTimeElapsed.value
+  
+  await scoreStore.saveSession(
+    props.level.id,
+    props.level.sessionSize.id,
+    sessionScore.value,
+    totalTime,
+    sessionErrors.value
+  )
+  
+  showSessionSummary.value = true
+}
+
+async function handleCellClick(row, col) {
   if (revealed.value[row][col] || showResult.value) return
   
   revealed.value[row][col] = true
@@ -56,80 +87,117 @@ function handleCellClick(row, col) {
   if (grid.value[row][col] === targetNumber.value) {
     showResult.value = true
     message.value = '🎉 Bravo! Tu as trouvé le nombre!'
-    scoreStore.incrementCorrect(props.level.id)
-    setTimeout(() => {
-      initGrid()
-      startTimer()
-      showResult.value = false
-      message.value = ''
-    }, 2000)
+    sessionScore.value++
+    await scoreStore.incrementCorrect(props.level.id)
+    
+    if (sessionProgress.value < props.level.sessionSize.count - 1) {
+      setTimeout(() => {
+        sessionProgress.value++
+        initGrid()
+        startTimer()
+        showResult.value = false
+        message.value = ''
+      }, 2000)
+    } else {
+      await finishSession()
+    }
   } else if (attempts.value >= props.level.maxAttempts) {
     showResult.value = true
     message.value = '❌ Nombre d\'essais dépassé!'
-    scoreStore.incrementErrors(props.level.id, {
+    sessionErrors.value++
+    await scoreStore.incrementErrors(props.level.id, {
       targetNumber: targetNumber.value,
       attempts: attempts.value
     })
-    setTimeout(() => {
-      initGrid()
-      startTimer()
-      showResult.value = false
-      message.value = ''
-    }, 2000)
+    
+    if (sessionProgress.value < props.level.sessionSize.count - 1) {
+      setTimeout(() => {
+        sessionProgress.value++
+        initGrid()
+        startTimer()
+        showResult.value = false
+        message.value = ''
+      }, 2000)
+    } else {
+      await finishSession()
+    }
   }
 }
 </script>
 
 <template>
   <div class="game-container">
-    <div class="game-header">
-      <button class="back-button" @click="$emit('back')">
-        ← Retour au menu
-      </button>
-      <h1>{{ level.name }}</h1>
-    </div>
-
-    <div class="timer-bar">
-      <div 
-        class="timer-progress" 
-        :style="{ width: (timeLeft / level.timer * 100) + '%' }"
-      ></div>
-      <div class="timer-text">{{ timeLeft }}s</div>
-    </div>
-
-    <div class="target-number">
-      Trouve le nombre : <span class="number">{{ targetNumber }}</span>
-    </div>
-
-    <div class="attempts">
-      Essais restants : {{ level.maxAttempts - attempts }}
-    </div>
-
-    <div class="grid">
-      <div 
-        v-for="(row, rowIndex) in grid" 
-        :key="rowIndex"
-        class="grid-row"
-      >
-        <button
-          v-for="(cell, colIndex) in row"
-          :key="colIndex"
-          class="grid-cell"
-          :class="{ 
-            'revealed': revealed[rowIndex][colIndex],
-            'target': revealed[rowIndex][colIndex] && cell === targetNumber
-          }"
-          @click="handleCellClick(rowIndex, colIndex)"
-          :disabled="revealed[rowIndex][colIndex] || showResult"
-        >
-          {{ revealed[rowIndex][colIndex] ? cell : '?' }}
+    <template v-if="!showSessionSummary">
+      <div class="game-header">
+        <button class="back-button" @click="$emit('back')">
+          ← Retour au menu
         </button>
+        <h1>{{ level.name }}</h1>
       </div>
-    </div>
 
-    <p class="message" :class="{ 'success': message.includes('Bravo') }">
-      {{ message }}
-    </p>
+      <div class="session-progress">
+        Grille {{ sessionProgress + 1 }}/{{ level.sessionSize.count }}
+      </div>
+
+      <div class="score-board">
+        <p>✅ Score actuel: {{ sessionScore }}/{{ sessionProgress }}</p>
+        <p>❌ Erreurs: {{ sessionErrors }}</p>
+      </div>
+
+      <div class="timer-bar">
+        <div 
+          class="timer-progress" 
+          :style="{ width: (timeLeft / level.timer * 100) + '%' }"
+        ></div>
+        <div class="timer-text">{{ timeLeft }}s</div>
+      </div>
+
+      <div class="target-number">
+        Trouve le nombre : <span class="number">{{ targetNumber }}</span>
+      </div>
+
+      <div class="attempts">
+        Essais restants : {{ level.maxAttempts - attempts }}
+      </div>
+
+      <div class="grid">
+        <div 
+          v-for="(row, rowIndex) in grid" 
+          :key="rowIndex"
+          class="grid-row"
+        >
+          <button
+            v-for="(cell, colIndex) in row"
+            :key="colIndex"
+            class="grid-cell"
+            :class="{ 
+              'revealed': revealed[rowIndex][colIndex],
+              'target': revealed[rowIndex][colIndex] && cell === targetNumber
+            }"
+            @click="handleCellClick(rowIndex, colIndex)"
+            :disabled="revealed[rowIndex][colIndex] || showResult"
+          >
+            {{ revealed[rowIndex][colIndex] ? cell : '?' }}
+          </button>
+        </div>
+      </div>
+
+      <p class="message" :class="{ 'success': message.includes('Bravo') }">
+        {{ message }}
+      </p>
+    </template>
+
+    <div v-else class="session-summary">
+      <h2>Session terminée!</h2>
+      <div class="summary-stats">
+        <p>Score final: {{ sessionScore }}/{{ level.sessionSize.count }}</p>
+        <p>Temps total: {{ Math.round(sessionTimeElapsed) }}s</p>
+        <p>Erreurs: {{ sessionErrors }}</p>
+      </div>
+      <button class="back-button" @click="$emit('back')">
+        Retour au menu
+      </button>
+    </div>
   </div>
 </template>
 
@@ -149,6 +217,20 @@ function handleCellClick(row, col) {
 }
 
 .game-header h1 {
+  color: #666;
+}
+
+.session-progress {
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.score-board {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 2rem;
+  font-size: 1.2rem;
   color: #666;
 }
 
@@ -264,5 +346,28 @@ function handleCellClick(row, col) {
 
 .message.success {
   color: #42b883;
+}
+
+.session-summary {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.session-summary h2 {
+  color: #42b883;
+  margin-bottom: 2rem;
+}
+
+.summary-stats {
+  margin-bottom: 2rem;
+}
+
+.summary-stats p {
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
+  color: #2c3e50;
 }
 </style>

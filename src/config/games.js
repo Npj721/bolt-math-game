@@ -135,6 +135,21 @@ export const operations = {
       }
       return { number: Math.floor(Math.random() * (max - min + 1)) + min }
     }
+  },
+  grid: {
+    calculate: () => null,
+    symbol: '🎯',
+    generateGrid: ({ rows, cols, startNumber }) => {
+      const grid = []
+      for (let i = 0; i < rows; i++) {
+        const row = []
+        for (let j = 0; j < cols; j++) {
+          row.push(startNumber + (i * cols) + j)
+        }
+        grid.push(row)
+      }
+      return grid
+    }
   }
 }
 
@@ -206,6 +221,42 @@ export const gameCategories = [
       { id: 'dec_easy', name: 'Facile', description: 'Nombres de 0 à 99', min: 0, max: 99, timer: 30 },
       { id: 'dec_medium', name: 'Moyen', description: 'Nombres de 100 à 999', min: 100, max: 999, timer: 45 },
       { id: 'dec_hard', name: 'Difficile', description: 'Nombres de 1000 à 9999', min: 1000, max: 9999, timer: 60 }
+    ]
+  },
+  {
+    id: 'grid',
+    name: 'Grille de nombres',
+    levels: [
+      { 
+        id: 'grid_easy', 
+        name: 'Facile', 
+        description: 'Grille 3x3, nombres de 1 à 9',
+        rows: 3,
+        cols: 3,
+        startNumber: 1,
+        maxAttempts: 5,
+        timer: 30
+      },
+      { 
+        id: 'grid_medium', 
+        name: 'Moyen', 
+        description: 'Grille 4x4, nombres de 1 à 16',
+        rows: 4,
+        cols: 4,
+        startNumber: 1,
+        maxAttempts: 7,
+        timer: 45
+      },
+      { 
+        id: 'grid_hard', 
+        name: 'Difficile', 
+        description: 'Grille 10x10, nombres de 1 à 100',
+        rows: 10,
+        cols: 10,
+        startNumber: 1,
+        maxAttempts: 1,
+        timer: 60
+      }
     ]
   }
 ]

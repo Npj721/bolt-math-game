@@ -5,6 +5,7 @@ import { operations } from '../config/games'
 import { useSessionHistory } from '../composables/useSessionHistory'
 import ColumnAddition from './ColumnAddition.vue'
 import ColumnSubtraction from './ColumnSubtraction.vue'
+import GridGame from './GridGame.vue'
 
 const props = defineProps(['level', 'operationType'])
 const emit = defineEmits(['back'])
@@ -177,11 +178,18 @@ onUnmounted(() => {
 })
 
 // Start the first problem
-generateNewProblem()
+if (props.operationType !== 'grid') {
+  generateNewProblem()
+}
 </script>
 
 <template>
-  <div class="game-container">
+  <GridGame 
+    v-if="operationType === 'grid'"
+    :level="level"
+    @back="$emit('back')"
+  />
+  <div v-else class="game-container">
     <template v-if="!showSessionSummary">
       <div class="game-header">
         <button class="back-button" @click="$emit('back')">

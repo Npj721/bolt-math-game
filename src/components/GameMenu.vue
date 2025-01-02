@@ -22,7 +22,11 @@ function hasErrors(levelId) {
 }
 
 function selectLevel(level) {
-  selectedLevel.value = level
+  if (props.category.id === 'grid') {
+    emit('selectLevel', level)
+  } else {
+    selectedLevel.value = level
+  }
 }
 
 function startSession(sessionSize) {
@@ -65,13 +69,14 @@ function closeHistory() {
             S'entraîner
           </button>
           <button 
-            v-if="hasErrors(level.id)"
+            v-if="hasErrors(level.id) && category.id !== 'grid'"
             class="correction-button"
             @click="$emit('correctErrors', level)"
           >
             Corriger les erreurs
           </button>
           <button
+            v-if="category.id !== 'grid'"
             class="history-button"
             @click="selectedLevel = level; showHistory = true"
           >
@@ -81,7 +86,7 @@ function closeHistory() {
       </div>
     </div>
 
-    <div v-else-if="selectedLevel && !showHistory" class="session-selection">
+    <div v-else-if="selectedLevel && !showHistory && category.id !== 'grid'" class="session-selection">
       <h2>{{ selectedLevel.name }} - Choisir la durée de la session</h2>
       <div class="session-grid">
         <div 

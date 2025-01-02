@@ -1,15 +1,42 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useScoreStore } from './stores/scores'
 import MainMenu from './components/MainMenu.vue'
 import GameMenu from './components/GameMenu.vue'
 import MathGame from './components/MathGame.vue'
 import ErrorCorrection from './components/ErrorCorrection.vue'
 
+import { useDeviceReady } from './helpers/useDeviceReady';
+
+
+
 const selectedCategory = ref(null)
 const selectedLevel = ref(null)
 const isCorrection = ref(false)
 const scoreStore = useScoreStore()
+
+const { isReady } = useDeviceReady();
+
+// Déclaration réactive des informations sur l'appareil
+const deviceInfo = ref({
+  platform: 'Inconnu',
+  version: 'Inconnu',
+  uuid: 'Inconnu',
+  device: ''
+});
+
+// Surveillez `isReady` et mettez à jour `deviceInfo` lorsqu'il est prêt
+watch(isReady, (ready) => {
+  if (ready && window.device) {
+    deviceInfo.value = {
+      platform: window.device.platform || 'Inconnu',
+      version: window.device.version || 'Inconnu',
+      uuid: window.device.uuid || 'Inconnu',
+      device: window.device || { }
+    };
+  }
+});
+
 
 onMounted(async () => {
   await scoreStore.init()
@@ -45,6 +72,7 @@ function returnToCategoryMenu() {
 
 <template>
   <div class="app-container">
+    {{ deviceInfo }}
     <template v-if="!selectedCategory">
       <MainMenu @select-category="handleCategorySelect" />
     </template>

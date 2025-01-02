@@ -182,7 +182,7 @@ async function handleCellClick(row, col) {
         </div>
       </div>
 
-      <p class="message" :class="{ 'success': message.includes('Bravo') }">
+      <p v-if="message !== ''" class="message" :class="{ 'success': message.includes('Bravo') }">
         {{ message }}
       </p>
     </template>
@@ -310,13 +310,15 @@ async function handleCellClick(row, col) {
 .grid-cell {
   width: 60px;
   height: 60px;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   border: 2px solid #42b883;
   background-color: white;
   color: #2c3e50;
-  border-radius: 8px;
+  justify-items: center;
   cursor: pointer;
   transition: all 0.3s;
+
+   
 }
 
 .grid-cell:hover:not(:disabled) {
@@ -339,9 +341,20 @@ async function handleCellClick(row, col) {
 }
 
 .message {
+  position: fixed;
+  top:7.5%;
+  bottom: 7.5%;
+  left:7.5%;
+  right:7.5%;
+  margin: auto;
+  width: 85%;
   min-height: 1.5em;
-  font-size: 1.2rem;
+  font-size: 3rem;
   color: #e74c3c;
+  z-index: 35000;
+  background-color:#0f2b1e;
+  text-align: center;
+  opacity: .95;
 }
 
 .message.success {

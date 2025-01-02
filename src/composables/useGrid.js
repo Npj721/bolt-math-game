@@ -7,7 +7,7 @@ export function useGrid(level) {
   const attempts = ref(0)
 
   function initGrid() {
-    const { rows, cols, startNumber } = level
+    const { rows, cols, startNumber, pctReveal } = level
     const totalCells = rows * cols
     grid.value = []
     revealed.value = []
@@ -24,8 +24,8 @@ export function useGrid(level) {
       revealed.value.push(revealedRow)
     }
 
-    // Reveal random cells (about 20% of the grid)
-    const cellsToReveal = Math.floor(totalCells * 0.2)
+    // Reveal random cells 
+    const cellsToReveal = Math.floor(totalCells * pctReveal)
     for (let i = 0; i < cellsToReveal; i++) {
       const row = Math.floor(Math.random() * rows)
       const col = Math.floor(Math.random() * cols)

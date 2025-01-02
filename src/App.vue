@@ -72,7 +72,6 @@ function returnToCategoryMenu() {
 
 <template>
   <div class="app-container">
-    {{ deviceInfo }}
     <template v-if="!selectedCategory">
       <MainMenu @select-category="handleCategorySelect" />
     </template>
@@ -106,7 +105,7 @@ function returnToCategoryMenu() {
 <style>
 .app-container {
   min-height: 100vh;
-  padding: 2rem;
+  width:100%;
   background-color: #f5f5f5;
 }
 </style>

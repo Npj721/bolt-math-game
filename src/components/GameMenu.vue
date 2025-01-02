@@ -65,14 +65,13 @@ function closeHistory() {
             S'entraîner
           </button>
           <button 
-            v-if="hasErrors(level.id) && category.id !== 'grid'"
+            v-if="hasErrors(level.id)"
             class="correction-button"
             @click="$emit('correctErrors', level)"
           >
             Corriger les erreurs
           </button>
           <button
-            v-if="category.id !== 'grid'"
             class="history-button"
             @click="selectedLevel = level; showHistory = true"
           >

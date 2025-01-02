@@ -235,7 +235,8 @@ export const gameCategories = [
         cols: 10,
         startNumber: 1,
         maxAttempts: 5,
-        timer: 60
+        timer: 60,
+        pctReveal: .9
       },
       { 
         id: 'grid_medium', 
@@ -245,7 +246,8 @@ export const gameCategories = [
         cols: 10,
         startNumber: 1,
         maxAttempts: 3,
-        timer: 60
+        timer: 60,
+        pctReveal: .3
       },
       { 
         id: 'grid_hard', 
@@ -255,7 +257,8 @@ export const gameCategories = [
         cols: 10,
         startNumber: 1,
         maxAttempts: 1,
-        timer: 60
+        timer: 60,
+        pctReveal: .05
       }
     ]
   }

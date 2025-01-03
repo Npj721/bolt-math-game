@@ -230,29 +230,29 @@ export const gameCategories = [
       { 
         id: 'grid_easy', 
         name: 'Facile', 
-        description: 'Grille 10x10, 5 essais',
+        description: 'Grille 10x10, 30 % révélé',
         rows: 10,
         cols: 10,
         startNumber: 1,
-        maxAttempts: 5,
-        timer: 60,
-        pctReveal: .9
-      },
-      { 
-        id: 'grid_medium', 
-        name: 'Moyen', 
-        description: 'Grille 10x10, 3 essais',
-        rows: 10,
-        cols: 10,
-        startNumber: 1,
-        maxAttempts: 3,
+        maxAttempts: 1,
         timer: 60,
         pctReveal: .3
       },
       { 
+        id: 'grid_medium', 
+        name: 'Moyen', 
+        description: 'Grille 10x10, 15 % révélé',
+        rows: 10,
+        cols: 10,
+        startNumber: 1,
+        maxAttempts: 1,
+        timer: 60,
+        pctReveal: .15
+      },
+      { 
         id: 'grid_hard', 
         name: 'Difficile', 
-        description: 'Grille 10x10, 1 essai',
+        description: 'Grille 10x10, 5 % révélé',
         rows: 10,
         cols: 10,
         startNumber: 1,

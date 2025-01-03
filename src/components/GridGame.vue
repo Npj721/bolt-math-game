@@ -86,7 +86,10 @@ async function handleCellClick(row, col) {
   
   if (grid.value[row][col] === targetNumber.value) {
     showResult.value = true
-    message.value = '🎉 Bravo! Tu as trouvé le nombre!'
+    setTimeout(() => {
+      message.value = '🎉 Bravo! Tu as trouvé le nombre!'  
+    }, 500);
+    
     sessionScore.value++
     await scoreStore.incrementCorrect(props.level.id)
     
@@ -103,7 +106,12 @@ async function handleCellClick(row, col) {
     }
   } else if (attempts.value >= props.level.maxAttempts) {
     showResult.value = true
-    message.value = '❌ Nombre d\'essais dépassé!'
+    
+    
+    setTimeout(() => {
+      message.value = '❌ Nombre d\'essais dépassé!'
+    }, 500);
+
     sessionErrors.value++
     await scoreStore.incrementErrors(props.level.id, {
       targetNumber: targetNumber.value,
@@ -342,19 +350,23 @@ async function handleCellClick(row, col) {
 
 .message {
   position: fixed;
-  top:7.5%;
-  bottom: 7.5%;
-  left:7.5%;
-  right:7.5%;
-  margin: auto;
-  width: 85%;
-  min-height: 1.5em;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 25vw;
+  height: 25vh;
+  z-index: 9999;
+  background-color: #fff;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  
+  /* Centrage du contenu avec Flexbox */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center; /* Optionnel pour centrer le texte si plusieurs lignes */
   font-size: 3rem;
-  color: #e74c3c;
-  z-index: 35000;
-  background-color:#0f2b1e;
-  text-align: center;
-  opacity: .95;
 }
 
 .message.success {

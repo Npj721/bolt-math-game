@@ -45,11 +45,20 @@ export function useGrid(level) {
     attempts.value = 0
   }
 
+  // Nouvelle fonction pour restaurer l'état d'une grille sauvegardée
+  function setGridState(savedState) {
+    grid.value = savedState.grid
+    revealed.value = savedState.revealed
+    targetNumber.value = savedState.targetNumber
+    attempts.value = 0
+  }
+
   return {
     grid,
     revealed,
     targetNumber,
     attempts,
-    initGrid
+    initGrid,
+    setGridState
   }
 }

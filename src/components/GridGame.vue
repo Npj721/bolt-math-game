@@ -12,7 +12,7 @@ const props = defineProps({
 
 const emit = defineEmits(['back'])
 const scoreStore = useScoreStore()
-const { grid, revealed, targetNumber, attempts, initGrid } = useGrid(props.level)
+const { grid, revealed, targetNumber, attempts, initGrid, setGridState } = useGrid(props.level)
 const message = ref('')
 const showResult = ref(false)
 const timeLeft = ref(props.level.timer)
@@ -49,6 +49,14 @@ async function handleTimeout() {
   showResult.value = true
   sessionErrors.value++
   message.value = '⏰ Temps écoulé!'
+  
+  // Sauvegarder l'état de la grille lors d'une erreur
+  await scoreStore.incrementErrors(props.level.id, {
+    grid: grid.value,
+    revealed: revealed.value,
+    targetNumber: targetNumber.value,
+    operationType: 'grid'
+  })
   
   if (sessionProgress.value < props.level.sessionSize.count - 1) {
     setTimeout(() => {
@@ -107,15 +115,17 @@ async function handleCellClick(row, col) {
   } else if (attempts.value >= props.level.maxAttempts) {
     showResult.value = true
     
-    
     setTimeout(() => {
       message.value = '❌ Nombre d\'essais dépassé!'
     }, 500);
 
     sessionErrors.value++
+    // Sauvegarder l'état de la grille lors d'une erreur
     await scoreStore.incrementErrors(props.level.id, {
+      grid: grid.value,
+      revealed: revealed.value,
       targetNumber: targetNumber.value,
-      attempts: attempts.value
+      operationType: 'grid'
     })
     
     if (sessionProgress.value < props.level.sessionSize.count - 1) {
@@ -132,7 +142,6 @@ async function handleCellClick(row, col) {
   }
 }
 </script>
-
 <template>
   <div class="game-container">
     <template v-if="!showSessionSummary">

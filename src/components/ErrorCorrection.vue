@@ -4,6 +4,7 @@ import { useScoreStore } from '../stores/scores'
 import { operations } from '../config/games'
 import ColumnAddition from './ColumnAddition.vue'
 import ColumnSubtraction from './ColumnSubtraction.vue'
+import GridGame from './GridGame.vue'
 
 const props = defineProps(['level', 'operationType'])
 const emit = defineEmits(['back'])
@@ -30,6 +31,9 @@ const correctAnswer = computed(() => {
   }
   if (props.operationType === 'decomposition') {
     return operation.value.calculate(currentError.value.number)
+  }
+  if (props.operationType === 'grid') {
+    return currentError.value.targetNumber
   }
   return operation.value.calculate(
     currentError.value.num1,
@@ -104,6 +108,20 @@ async function checkAnswer(value) {
     const isCorrect = correctAnswer.value.every(digit => 
       parseInt(userAnswer.value[digit.position]) === digit.value
     )
+    
+    if (isCorrect) {
+      await scoreStore.incrementCorrect(props.level.id)
+      await scoreStore.removeError(props.level.id, currentErrorIndex.value)
+      message.value = '🎉 Bravo! Tu as corrigé cette erreur!'
+      
+      if (currentErrorIndex.value >= errors.value.length) {
+        currentErrorIndex.value = Math.max(0, errors.value.length - 1)
+      }
+    } else {
+      message.value = '❌ Ce n\'est pas encore ça, essaie encore!'
+    }
+  } else if (props.operationType === 'grid') {
+    const isCorrect = value === correctAnswer.value
     
     if (isCorrect) {
       await scoreStore.incrementCorrect(props.level.id)
@@ -208,6 +226,14 @@ function revealAnswer() {
             @check="checkAnswer"
           />
         </template>
+        <template v-else-if="operationType === 'grid'">
+          <GridGame
+            :level="level"
+            :savedState="currentError"
+            @check="checkAnswer"
+            @back="$emit('back')"
+          />
+        </template>
         <template v-else-if="operationType === 'decomposition'">
           <div class="problem decomposition">
             <div class="number">{{ currentError.number }}</div>
@@ -276,7 +302,6 @@ function revealAnswer() {
     </template>
   </div>
 </template>
-
 <style scoped>
 .game-container {
   max-width: 500px;
